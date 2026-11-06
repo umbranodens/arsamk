@@ -13,7 +13,7 @@
 - [x] 1. Add packaging validation and tests: missing assets fail, private files stay out, symlinks/traversal fail, valid site packages successfully.
 - [x] 2. Add deployment polling and tests: unsafe archives fail, releases switch atomically, failed health checks restore the previous release, old releases remain available for rollback.
 - [x] 3. Add pinned GitHub Actions workflow, isolated Compose/Nginx configuration, dedicated systemd units, and operating/domain instructions.
-- [ ] 4. Record baseline container identities/start times and existing configuration hashes. Install only new Arsamk resources. Run tests, deploy through a real push to `main`, verify HTTP and tunnel access, test rollback, and compare the existing stacks against baseline.
+- [x] 4. Record baseline container identities/start times and existing configuration hashes. Install only new Arsamk resources. Run tests, deploy through a real push to `main`, verify HTTP and tunnel access, test rollback, and compare the existing stacks against baseline.
 
 ## Review focus
 
@@ -29,3 +29,6 @@
 - Python is unavailable locally; run Python verification in a new Arsamk-only staging directory on the target host using the existing system Python. Do not install or alter host dependencies.
 - Independent read-only reviewer found two release-staging defects: mode 0700 inherited from the temporary directory and incomplete copies blocking retries. Regression tests reproduced both; staging now sets mode 0755 and atomically renames a validated release, repairing partial existing directories. Full suite: 10/10 passing on target Python.
 - Baseline recorded 11 existing containers (including stopped containers) and eight configuration hashes before installation. No application infrastructure has been changed.
+- Installed only the new Arsamk account, stack/network/containers, and two systemd units. First Actions run published successfully; a second push deployed automatically without recreating Nginx. Timer enabled/active, origin healthy, public HTTPS 200.
+- Public verification identified Cloudflare email rewriting; an origin `no-transform` header fixed HTML byte integrity. Managed `robots.txt` still prepends Cloudflare rules; verified that original content remains intact. All 39 origin checksums and 38 unchanged public checksums passed, plus the managed robots check and six private/missing URL probes.
+- Rollback verified with installed code in an isolated directory against a forced real HTTP revision mismatch. Existing workloads were unchanged against all baseline fields/hashes after installation and verification.

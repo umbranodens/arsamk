@@ -2,6 +2,16 @@
 
 Source: <https://github.com/umbranodens/arsamk>, branch `main`.
 
+## Verified on 6 November 2026
+
+- Temporary public URL: <https://wyoming-diagram-criteria-applies.trycloudflare.com>. Retrieve the current URL from container logs if the preview connector restarts.
+- Real push-to-deploy verified with source commit `0c4088479d1ffa39b412ccdd38caadebb4430681`: [Actions run](https://github.com/umbranodens/arsamk/actions/runs/42214377277). Nginx retained its original container/start time across the update.
+- Ten deployment tests passed. All 39 origin files matched their manifest checksums. Public HTTPS preserved 38 file checksums; Cloudflare prepends managed crawler rules to `robots.txt` while preserving the original rules and sitemap. This is controlled by the temporary Cloudflare hostname.
+- Six private/missing URL probes returned 403/404. Preview indexing headers and response headers were verified.
+- The installed activation/HTTP verification functions restored the previous symlink after a forced revision mismatch in an isolated test directory. The live site and polling timer were not interrupted for this rollback test.
+- All 11 existing containers (including stopped containers) retained their IDs, start times, running states and restart counts. Eight hashes of existing stack/deploy/shared-tunnel configuration matched the pre-installation baseline.
+- Nginx is healthy; the polling timer is enabled and active. Port 8092 binds only to loopback. No public IP/router/firewall changes were required.
+
 ## How updates reach the server
 
 1. Push to `main`. Pull requests run the same checks without publishing.
@@ -24,7 +34,7 @@ Normal delay is the Actions runtime plus up to about 30 seconds. If GitHub is un
 - Writable deployment state: `/opt/stacks/arsamk/data`, including release directories and a bare Git cache.
 - No existing stack, Cloudflare config, SSH authorized keys, router rule, firewall rule, or application database is changed.
 
-Nginx runs as UID 101 with a read-only filesystem, all capabilities dropped, bounded CPU/memory/logs, and read-only content/config mounts. The service can write only its deployment data and private temporary files. Only public website data is fetched from `production`. HTTP responses require revalidation so updated CSS/JS are not hidden behind long browser caches.
+Nginx runs as UID 101 with a read-only filesystem, all capabilities dropped, bounded CPU/memory/logs, and read-only content/config mounts. The service can write only its deployment data and private temporary files. Only public website data is fetched from `production`. HTTP responses require revalidation so updated CSS/JS are not hidden behind long browser caches. `Cache-Control: no-transform` keeps Cloudflare from rewriting the deployed HTML (including its email links), allowing public responses to match the release checksums.
 
 `deploy/compose.yml` pins the Nginx and cloudflared image digests used for this installation. Review image updates separately and recreate only this project. Changes to `deploy/*` or deployment scripts in `main` do not automatically replace installed host files; copy reviewed versions deliberately.
 
