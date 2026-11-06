@@ -1,0 +1,29 @@
+[Unit]
+Description=Pull validated Arsamk static release
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+User=arsamk-deploy
+Group=arsamk-deploy
+ExecStart=/usr/bin/python3 /opt/stacks/arsamk/bin/pull_site.py
+WorkingDirectory=/opt/stacks/arsamk
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=GIT_TERMINAL_PROMPT=0
+UMask=0022
+TimeoutStartSec=180
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/stacks/arsamk/data
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+MemoryMax=256M
+CPUQuota=50%

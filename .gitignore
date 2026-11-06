@@ -1,1 +1,4 @@
 assets/docs
+__pycache__/
+*.pyc
+/deploy/tunnel.token

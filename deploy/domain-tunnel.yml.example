@@ -1,0 +1,28 @@
+# Create a separate Cloudflare Tunnel for Arsamk after purchasing the domain.
+# Apply alongside compose.yml; keep tunnel.token out of Git, root:65532 mode 0640.
+services:
+  domain:
+    image: cloudflare/cloudflared:2026.8.1@sha256:d9ff527dc19799e24d3689058161fb01e752a24be1823577bae54c9c2489275f
+    restart: unless-stopped
+    user: "65532:65532"
+    command: [tunnel, --no-autoupdate, --protocol, http2, run, --token-file, /run/secrets/tunnel_token]
+    secrets: [tunnel_token]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.50
+    pids_limit: 50
+    networks: [arsamk]
+    depends_on:
+      web:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "2"
+
+secrets:
+  tunnel_token:
+    file: ./tunnel.token

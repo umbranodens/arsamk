@@ -1,0 +1,72 @@
+name: Validate and publish site
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: arsamk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          persist-credentials: false
+      - name: Run deployment tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Check JavaScript syntax
+        run: node --check assets/js/main.js
+      - name: Validate site and package public files
+        run: python3 scripts/build_site.py --output "$RUNNER_TEMP/site-check" --revision "$GITHUB_SHA"
+
+  publish:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, pinned
+        with:
+          persist-credentials: false
+      - name: Build deployment bundle
+        run: python3 scripts/build_site.py --output "$RUNNER_TEMP/site" --revision "$GITHUB_SHA"
+      - name: Publish generated production branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=http.https://github.com/.extraheader
+          export GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote="https://github.com/$GITHUB_REPOSITORY.git"
+          latest=$(git ls-remote "$remote" refs/heads/main | cut -f1)
+          if [ "$latest" != "$GITHUB_SHA" ]; then
+            echo "A newer main commit exists; skip stale publication."
+            exit 0
+          fi
+          cd "$RUNNER_TEMP/site"
+          git init --initial-branch=production
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git remote add origin "$remote"
+          if git ls-remote --exit-code origin refs/heads/production >/dev/null; then
+            git fetch --depth=1 origin production
+            git update-ref refs/heads/production FETCH_HEAD
+          fi
+          git add --all
+          git commit -m "Deploy $GITHUB_SHA"
+          git push origin HEAD:refs/heads/production
+          echo "Published $GITHUB_SHA. Server polls production every 30 seconds." >> "$GITHUB_STEP_SUMMARY"

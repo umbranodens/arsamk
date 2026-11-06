@@ -1,0 +1,11 @@
+[Unit]
+Description=Check for validated Arsamk releases every 30 seconds
+
+[Timer]
+OnBootSec=45s
+OnUnitInactiveSec=30s
+AccuracySec=1s
+Unit=arsamk-deploy.service
+
+[Install]
+WantedBy=timers.target
