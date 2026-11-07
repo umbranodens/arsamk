@@ -1,7 +1,7 @@
 {
-  "revision": "6d583b04829b16ccb7ff5058348a2c0a543b4764",
+  "revision": "00fce7d9cf0257205f10007074ca3eca7fc1acc4",
   "files": {
-    "assets/css/main.css": "d1f09271de3bff663303588c45de129f4ac99bb9f3a87a51a244917d1283a025",
+    "assets/css/main.css": "b314bf82a192554122754769cfa07d1941e3075e23ba21aa5f0dd3fb40d7eedb",
     "assets/font/cabin-sketch/OFL.txt": "f6fc9fbae062e4efc1b0306e27715d43cd64a48b8ffba81c22034b8efee4fce2",
     "assets/font/cabin-sketch/cabin-sketch-latin-700-normal.woff2": "5b1ad02715a39f758061673f2c39631e1d256f6b5d865355fc63a785f40f399a",
     "assets/font/patrick-hand/OFL.txt": "377f4f9c19e935228552478eb68cc2ed82910988a60ba60e2ac73b09f32d02d1",
@@ -37,7 +37,7 @@
     "assets/img/social/og-id.png": "645cd7b7a783f8edeca22b391779bb65d98ef69a7368c0342933f56d4334851d",
     "assets/js/main.js": "ad00c3a411d4389d338d5fa6d0dcfb36247e81b7ef89237c4e1c45e02fcad9d6",
     "favicon.ico": "18ba8715c94f1fe678837e8b33bd088c111dfa14eb0106c2b3b12516bc72e515",
-    "index.html": "a774967403c19c195625d15939fdd932b2fb50f6c2061733ba0f15e22ae8cf23",
+    "index.html": "020e7a063293c26b172ca1bb989d99b6ac6eb98b0e62175132ceb9521389cf70",
     "robots.txt": "fd08d9a607da99e19f675cb6b96a4cc3300e54da6a517394319fc1cbad05cbde",
     "sitemap.xml": "61a51a6dd473f3904717b2cb7c4406845879e5a3549b80aae0251904744c89c1"
   }
