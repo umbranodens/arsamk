@@ -2,6 +2,17 @@
 
 Source: <https://github.com/umbranodens/arsamk>, branch `main`.
 
+## Production domain activated on 7 November 2026
+
+- Public URL: <https://arsamk.com/>. HTTP and `www.arsamk.com` redirect permanently to the HTTPS apex while preserving paths and query strings.
+- Dedicated remotely managed Cloudflare Tunnel: `arsamk`, ID `92d2cdf3-3acb-43ea-8a46-447c9c1067c4`. Both hostname routes target `http://web:8080`; unmatched hostnames return 404.
+- Connector: `arsamk-domain`, configured by `deploy/domain-tunnel.yml` alongside the base Compose file. The token remains only on the server at `/opt/stacks/arsamk/tunnel.token`, owned by `root:65532`, mode `0640`.
+- Apex and `www` DNS records are proxied CNAMEs to the dedicated tunnel. The former parking records were replaced; other DNS records and existing project tunnels were not changed.
+- HTTPS certificate validation, all 39 site files (allowing Cloudflare-managed additions to robots.txt), six private/missing URL probes, redirects, and production indexing headers passed verification.
+- The preview connector was stopped after the production domain passed verification. Its former URL is no longer the public site address. The optional preview profile remains available for diagnostics.
+- Temporary Cloudflare management credentials and setup/rollback files were removed from the host. The runtime connector has only its tunnel-specific token. Website content deployment remains unchanged.
+- After activation, all 11 pre-existing containers retained their IDs, start times, running states and restart counts, and all eight existing configuration hashes matched the pre-activation snapshot. Arsamk's Nginx configuration was reloaded without restarting its container.
+
 ## Verified on 6 November 2026
 
 - Temporary public URL: <https://wyoming-diagram-criteria-applies.trycloudflare.com>. Retrieve the current URL from container logs if the preview connector restarts.
@@ -26,7 +37,7 @@ Normal delay is the Actions runtime plus up to about 30 seconds. If GitHub is un
 
 - Host: `dev_armia@ssh.woodresidence.id`, through the existing Cloudflare SSH access.
 - Stack: `/opt/stacks/arsamk`; Compose project `arsamk`.
-- Containers: `arsamk-web`, `arsamk-preview`; dedicated `arsamk_arsamk` network.
+- Active containers: `arsamk-web`, `arsamk-domain`; dedicated `arsamk_arsamk` network. `arsamk-preview` is stopped.
 - Origin: `127.0.0.1:8092`, unavailable directly from the internet/LAN.
 - Deploy account: `arsamk-deploy`, system account, no login shell or Docker group membership.
 - Services: `/etc/systemd/system/arsamk-deploy.service` and `.timer`.
@@ -38,9 +49,17 @@ Nginx runs as UID 101 with a read-only filesystem, all capabilities dropped, bou
 
 `deploy/compose.yml` pins the Nginx and cloudflared image digests used for this installation. Review image updates separately and recreate only this project. Changes to `deploy/*` or deployment scripts in `main` do not automatically replace installed host files; copy reviewed versions deliberately.
 
-## Access before the domain is purchased
+## Production and diagnostic access
 
-The preview profile uses a dedicated Cloudflare Quick Tunnel. Find its current HTTPS URL:
+Use <https://arsamk.com/> for normal access. The domain and its HTTPS connection are now served by the permanent connector. The old Quick Tunnel was retired after verification.
+
+For temporary diagnostics only, the preview profile can start a separate Quick Tunnel. This is optional and is not needed for deployment or the production domain:
+
+```sh
+docker compose -p arsamk -f /opt/stacks/arsamk/compose.yml --profile preview up -d --no-deps preview
+```
+
+Find that diagnostic tunnel's current URL:
 
 ```sh
 docker logs arsamk-preview 2>&1 | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
@@ -59,7 +78,7 @@ ssh -N -L 8092:127.0.0.1:8092 -o ExitOnForwardFailure=yes -o 'ProxyCommand=cloud
 After connecting to the server:
 
 ```sh
-docker compose -p arsamk -f /opt/stacks/arsamk/compose.yml --profile preview ps
+docker compose -p arsamk -f /opt/stacks/arsamk/compose.yml -f /opt/stacks/arsamk/domain-tunnel.yml ps
 systemctl status arsamk-deploy.timer
 sudo journalctl -u arsamk-deploy.service -n 50 --no-pager
 curl --fail http://127.0.0.1:8092/release.json
@@ -94,24 +113,25 @@ sudo systemctl start arsamk-deploy.timer
 
 The timer will bring the site back to the generated `production` version. Nothing here touches another Compose project.
 
-## Activate arsamk.com later
+## Rebuild or maintain the domain connector
 
-1. Purchase the domain, add it to the intended Cloudflare account, and activate its nameservers. No DNS changes have been made yet.
-2. Create a **new dedicated tunnel for Arsamk** in Cloudflare. Add published application routes for `arsamk.com` and `www.arsamk.com`, both pointing to `http://web:8080`. The connector will join Arsamk's Docker network, so `web` resolves there. Configure a Cloudflare redirect from `www` to the apex to match the existing canonical URL.
-3. Copy `deploy/domain-tunnel.yml.example` into `/opt/stacks/arsamk/domain-tunnel.yml`. Put the tunnel token in `/opt/stacks/arsamk/tunnel.token`, owned by `root:65532` with mode `0640` so the non-root connector can read it. The token is supplied through a Compose secret; never commit it.
-4. Start only Arsamk's new connector:
+The domain is already active. To rebuild the connector on a replacement server, reuse the dedicated `arsamk` tunnel in Cloudflare. Its published application routes for `arsamk.com` and `www.arsamk.com` must both point to `http://web:8080`. Nginx handles the canonical HTTPS redirects; no shared host tunnel needs editing.
+
+Copy `deploy/domain-tunnel.yml` into `/opt/stacks/arsamk/domain-tunnel.yml`. Put the tunnel token in `/opt/stacks/arsamk/tunnel.token`, owned by `root:65532` with mode `0640` so the non-root connector can read it. The token is supplied through a Compose secret; never commit it.
+
+Start or recreate only Arsamk's connector:
 
 ```sh
-docker compose -p arsamk -f /opt/stacks/arsamk/compose.yml -f /opt/stacks/arsamk/domain-tunnel.yml up -d domain
+docker compose -p arsamk -f /opt/stacks/arsamk/compose.yml -f /opt/stacks/arsamk/domain-tunnel.yml up -d --no-deps domain
 ```
 
-5. Verify HTTPS, `/release.json`, all assets, and both hostname routes. After confirmation, stop the temporary connector:
+Verify HTTPS, `/release.json`, all assets, and both hostname routes. If the temporary diagnostic connector was enabled, stop it when finished:
 
 ```sh
 docker compose -p arsamk -f /opt/stacks/arsamk/compose.yml --profile preview stop preview
 ```
 
-The existing host tunnel, its ingress, and all other project connectors stay untouched. CI/CD remains the same after domain activation.
+For a connector-token rotation, obtain a replacement for this tunnel from Cloudflare, update only `tunnel.token` with the same ownership/mode, and recreate only the `domain` service. The existing host tunnel, its ingress, and all other project connectors stay untouched. CI/CD does not depend on this token or change during domain maintenance.
 
 ## Installation / audit record
 
@@ -121,4 +141,4 @@ The one-time audit script and completed implementation plan have been removed fr
 
 On 7 November 2026, `/opt/stacks/arsamk/staging`, `staging-built`, `validated-site`, and `existing-baseline.json` were removed after checking container mounts and service references. This freed approximately 40 MiB. Existing workloads/configuration matched before and after cleanup, and neither Arsamk container was restarted. The active `bin/`, `data/`, Compose/Nginx configuration, and systemd units remain installed.
 
-Server project files and credentials were inspected only as needed to understand deployment patterns. Full-site uptime monitoring/alerts, domain purchase, permanent DNS/tunnel configuration, and branch protection policy are separate follow-ups.
+Server project files and credentials were inspected only as needed to understand deployment patterns. Full-site uptime monitoring/alerts and branch protection policy remain separate follow-ups.
