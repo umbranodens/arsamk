@@ -115,8 +115,10 @@ The existing host tunnel, its ingress, and all other project connectors stay unt
 
 ## Installation / audit record
 
-The initial installation used `deploy/install.sh` from a reviewed staging copy. It refuses existing Arsamk units/install paths, creates only the dedicated account/directories/units, validates configuration, starts the origin, pulls the first release, enables the timer, then starts the preview. It is a bootstrap script, not an updater.
+The initial installation used `deploy/install.sh` from a reviewed staging copy. It refuses existing Arsamk units/install paths, creates only the dedicated account/directories/units, validates configuration, starts the origin, pulls the first release, enables the timer, then starts the preview. Keep this script for rebuilding on a replacement server; it is not used during routine deployments.
 
-`deploy/audit_existing.py record` stores only container IDs, start times, restart counts, running states, and SHA-256 hashes of existing Compose/deploy/shared-tunnel configuration. It does not persist inspected environment variables or credential contents. Running the script without arguments compares against that baseline. Baseline data is stored on the server at `/opt/stacks/arsamk/existing-baseline.json`.
+The one-time audit script and completed implementation plan have been removed from the repository after installation. They are not part of CI/CD; the audit results are recorded above and their original source remains available in Git history. Temporary staging/build directories used for installation are not needed by the running site or polling service.
+
+On 7 November 2026, `/opt/stacks/arsamk/staging`, `staging-built`, `validated-site`, and `existing-baseline.json` were removed after checking container mounts and service references. This freed approximately 40 MiB. Existing workloads/configuration matched before and after cleanup, and neither Arsamk container was restarted. The active `bin/`, `data/`, Compose/Nginx configuration, and systemd units remain installed.
 
 Server project files and credentials were inspected only as needed to understand deployment patterns. Full-site uptime monitoring/alerts, domain purchase, permanent DNS/tunnel configuration, and branch protection policy are separate follow-ups.
